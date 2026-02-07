@@ -14,8 +14,9 @@ data Expr = Eof
           | Begin Expr Expr
           | Let Id Expr Expr
           | Var Id
-type Id   = String
-data Op0  = ReadByte
+          deriving (Eq, Show)
+type Id   = String 
+data Op0  = ReadByte deriving (Eq, Show)
 data Op1  = Add1 | Sub1 | ZeroHuh
           | CharHuh | IntegerToChar | CharToInteger
           | WriteByte | EofObjectHuh
@@ -23,8 +24,10 @@ data Op1  = Add1 | Sub1 | ZeroHuh
           | EmptyHuh | ConsHuh | BoxHuh
           | VectorHuh | VectorLength
           | StringHuh | StringLength
+          deriving (Eq, Show)
 data Op2  = Plus | Minus | LessThan | Equals
           | Cons | EqHuh
           | MakeVector | VectorRef
           | MakeString | StringRef
-data Op3  = VectorSetBang
+          deriving (Eq, Show)
+data Op3  = VectorSetBang deriving (Eq, Show)
