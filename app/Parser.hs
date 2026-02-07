@@ -17,9 +17,11 @@ parseIntPos = Int . read <$> some numberChar
 parseIntNeg :: Parser Expr
 parseIntNeg = Int . read <$> ((:) <$> char '-' <*> some numberChar)
 
--- todo: specially printed racket chars e.g. #\space and #\newline
+-- todo: other specially printed racket chars
 parseChar :: Parser Expr
-parseChar = Char <$> (string "#\\" *> printChar)
+parseChar = Char <$> (('\n' <$ string "#\\newline")
+                 <|> (' ' <$ string "#\\space")
+                 <|> (string "#\\" *> printChar))
 
 parseString :: Parser Expr
 parseString = Str <$> (char '"' *> many (anySingleBut '"') <* char '"')
