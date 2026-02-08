@@ -19,6 +19,9 @@ skipSpace = L.space
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme skipSpace
 
+discard :: String -> Parser ()
+discard p = void $ lexeme (string p)
+
 matchOpenParens :: Parser ()
 matchOpenParens = void $ lexeme $ char '('
 
@@ -134,7 +137,7 @@ parsePrimN = do
 parseLet :: Parser Expr
 parseLet = do
   matchOpenParens
-  void $ lexeme (string "let")
+  discard "let"
   matchOpenParens
   matchOpenParens
   i <- parseId
@@ -159,7 +162,7 @@ parseDefn = try parseDefnVar <|> parseDefnFn
 parseDefnVar :: Parser Defn
 parseDefnVar = do
   void $ lexeme (char '(')
-  void $ lexeme (string "define")
+  discard "define"
   i <- parseId
   e <- parseRecursive
   void $ lexeme (char ')')
@@ -168,7 +171,7 @@ parseDefnVar = do
 parseDefnFn :: Parser Defn
 parseDefnFn = do
   void $ lexeme (char '(')
-  void $ lexeme (string "define")
+  discard "define"
   void $ lexeme (char '(')
   i <- parseId
   args <- many parseId
