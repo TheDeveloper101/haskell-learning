@@ -27,7 +27,7 @@ valueToBits e = case e of
     Int i -> shiftL i intShift
     Bool b -> (if b then 0b00011000 else 0b00111000)
     Eof -> 0b01011000
-    Char c -> typeChar .|. shiftL charShift (ord c)
+    Char c -> typeChar .|. shiftL (ord c) charShift
     _ -> -1
 
 bitsToValue :: Int -> Expr
