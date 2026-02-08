@@ -1,6 +1,6 @@
 {-# LANGUAGE BinaryLiterals #-}
 
-module Types where
+module Types (valueToBits, bitsToValue) where
 
 import Data.Bits
 import Control.Conditional (cond)

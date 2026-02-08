@@ -10,9 +10,10 @@ import AST (Expr (..))
 import Language.Wasm.Structure (ValueType(..))
 import Language.Wasm.Builder
 import Data.Proxy
+import Types(valueToBits, bitsToValue)
 
 compileWasm :: Expr -> GenFun (Proxy I64)
 
 compileWasm e = case e of
-    Int i -> i64c i
+    Int i -> i64c (valueToBits i)
     _ -> trap Proxy
