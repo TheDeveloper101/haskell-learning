@@ -6,9 +6,11 @@ import AST
 import CodeGen.X86
 import CodeGen.X86.Asm
 import Data.Text (pack, replace, unpack)
+import Data.Int
 import System.Process (callCommand)
 import Types
 import Assertx86
+import Text.Megaparsec (MonadParsec(eof))
 
 type Ctx = Integer
 
@@ -19,12 +21,6 @@ wrapBool = mdo
   mov rax $ ImmOp $ Immediate $ valueToBits $ Bool True
   elsel <- label
   mov rax $ ImmOp $ Immediate $ valueToBits $ Bool False
-
-charHuh :: Code
-charHuh = mdo
-  and_ rax $ ImmOp $ Immediate maskChar
-  cmp rax $ ImmOp $ Immediate typeChar
-  ifEqual
 
 pushCallerSaved :: Code
 pushCallerSaved = do
@@ -138,11 +134,50 @@ compileOp1 :: Label -> Op1 -> Expr -> Code
 compileOp1 errLabel op expr = mdo
    compileExpr errLabel expr
    case op of
-     Add1 -> add rax $ ImmOp $ Immediate $ valueToBits $ Int 1
-     Sub1 -> sub rax $ ImmOp $ Immediate $ valueToBits $ Int 1
-     CharHuh -> charHuh
-      
-     _ -> error "todo"
+    Add1 -> add rax $ ImmOp $ Immediate $ valueToBits $ Int 1
+    Sub1 -> sub rax $ ImmOp $ Immediate $ valueToBits $ Int 1
+    ZeroHuh -> do
+      assertInt errLabel rax
+      cmp rax 0
+      ifEqual
+    CharHuh -> do
+      and_ rax $ ImmOp $ Immediate maskChar
+      cmp rax $ ImmOp $ Immediate typeChar
+      ifEqual
+    CharToInteger -> do
+      assertChar errLabel rax
+      sar rax $ fromIntegral charShift
+      shl rax $ fromIntegral intShift -- SAL and SHL share teh same opcode???
+    IntegerToChar -> do
+      --assertCodepoint
+      sar rax $ fromIntegral intShift
+      sar rax $ fromIntegral charShift
+      xor_ rax $ fromIntegral typeChar
+    EofObjectHuh -> do
+      cmp rax $ ImmOp $ Immediate $ valueToBits Eof
+      ifEqual
+    WriteByte -> writeByte
+    Box -> do
+      mov (addr64 rbx) rax
+      mov rax rbx
+      xor_ rax $ fromIntegral typeBox
+      add rbx 8
+    Unbox -> do
+      assertBox errLabel rax
+      mov rax $ MemOp (Addr (Just rax) (Just $ fromIntegral $ - typeBox) NoIndex)
+    Car -> do
+      assertCons errLabel rax
+      mov rax $ MemOp (Addr (Just rax) (Just $ fromIntegral $ - typeCons) NoIndex)
+    Cdr -> do
+      assertCons errLabel rax
+      mov rax $ MemOp (Addr (Just rax) (Just $ fromIntegral $ 8 - typeCons) NoIndex)
+    EmptyHuh -> do
+      cmp rax $ ImmOp $ Immediate $ valueToBits Empty
+    ConsHuh -> do
+      typePred ptrMask $ fromIntegral typeCons
+    BoxHuh -> do
+      typePred ptrMask $ fromIntegral typeCons
+    _ -> error "todo"
 
 compileOp2 :: Label -> Op2 -> Expr -> Expr -> Code
 compileOp2 errLabel op expr1 expr2 = mdo
@@ -230,6 +265,12 @@ ifEqual = do
   mov r9 $ ImmOp $ Immediate $ valueToBits $ Bool True
   cmov E rax r9
 
+typePred :: Int64 -> Int64 -> Code
+typePred mask ty = do
+  and rax mask
+  cmp rax ty
+  ifEqual
+
 findAndReplace :: String -> String -> String -> String
 findAndReplace orig new str = unpack $ replace (pack orig) (pack new) (pack str)
 
@@ -240,7 +281,6 @@ compileMain expr = mdo
   popCalleeSaved
   ret
   errLabel <- label
-  -- TODO: handle errors here
   mov xmm0 xmm4
 
 compileProgramToAsm :: Expr -> String

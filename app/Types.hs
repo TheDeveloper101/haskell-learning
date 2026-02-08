@@ -41,6 +41,7 @@ valueToBits e = case e of
     Bool b -> (if b then 0b00011000 else 0b00111000)
     Eof -> 0b01011000
     Char c -> fromIntegral typeChar .|. shiftL (fromIntegral (ord c)) charShift
+    Empty -> 0b10011000
     _ -> -1
 
 bitsToValue :: Int64 -> Expr
