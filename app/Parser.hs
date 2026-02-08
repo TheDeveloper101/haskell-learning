@@ -1,4 +1,4 @@
-module Parser (module Parser, Text.Megaparsec.parseTest) where
+module Parser where
 
 import Control.Monad
 import Data.Void (Void)
