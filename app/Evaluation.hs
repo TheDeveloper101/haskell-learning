@@ -1,13 +1,14 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TupleSections #-}
 
 module Evaluation where
 
 import AST
-import Data.Map ((!))
 import qualified Data.Map as M
-import Prelude hiding ((!))
-import Control.Monad.Trans.State
+import Control.Monad.Trans.State.Strict (StateT, put, get, evalStateT)
+import Control.Monad.Trans.Class (lift, MonadTrans)
+import Data.Maybe (fromMaybe)
 
 data Ty = TInt | TBool | TChar | TStr | TVec | TList | TBox deriving (Eq, Show)
 
@@ -32,6 +33,9 @@ evalOp0 ReadByte = VChar <$> getChar
 evalId :: Ctx -> Id -> Val
 evalId ctx id = ctx M.! id
 
+evalOp1 :: Op1 -> Val -> IncrT IO Val
+evalOp1 = undefined
+
 typeof :: Val -> Ty
 typeof (VInt _) = TInt
 typeof (VBool _) = TBool
@@ -43,38 +47,80 @@ typeof (VVec _ _) = TVec
 typeof (VBox _ _) = TBox
 typeof VVoid = error "tried to get the type of a void value"
 
-newtype Incr a = Incr (State Int a) deriving (Functor, Applicative, Monad)
+newtype IncrT m a = IncrT (StateT Int m a) deriving (Functor,
+                                                     Applicative,
+                                                     Monad,
+                                                     MonadTrans)
 
-incr :: Incr Int
-incr = Incr $ do
+incr :: Monad m => IncrT m Int
+incr = IncrT $ do
   i <- get
   put (i + 1)
   return i
 
-evalIncr :: Incr a -> Int -> a
-evalIncr (Incr st) = evalState st
+evalIncrT :: Monad m => IncrT m a -> Int -> m a
+evalIncrT (IncrT st) = evalStateT st
 
-evalOp2 :: Op2 -> Val -> Val -> Incr Val
+evalOp2 :: Monad m => Op2 -> Val -> Val -> IncrT m Val
 evalOp2 _ VVoid _ = error "attempted to operate on a void type"
 evalOp2 _ _ VVoid = error "attempted to operate on a void type"
-evalOp2 Plus (VInt l) (VInt r) = return $ VInt (l + r)
-evalOp2 Minus (VInt l) (VInt r) = return $ VInt (l - r)
-evalOp2 LessThan (VInt l) (VInt r) = return $ VBool (l < r)
-evalOp2 Equals (VInt l) (VInt r) = return $ VBool (l == r)
-evalOp2 Equals (VBool l) (VBool r) = return $ VBool (l == r)
-evalOp2 Equals (VChar l) (VChar r) = return $ VBool (l == r)
-evalOp2 Equals (VStr l) (VStr r) = return $ VBool (l == r)
-evalOp2 Equals _ _ = return $ VBool False
-evalOp2 Cons x y = return $ VCons x y
-evalOp2 EqHuh l r = return $ VBool (l == r)
+evalOp2 Plus (VInt l) (VInt r) = pure $ VInt (l + r)
+evalOp2 Minus (VInt l) (VInt r) = pure $ VInt (l - r)
+evalOp2 LessThan (VInt l) (VInt r) = pure $ VBool (l < r)
+evalOp2 Equals (VInt l) (VInt r) = pure $ VBool (l == r)
+evalOp2 Equals (VBool l) (VBool r) = pure $ VBool (l == r)
+evalOp2 Equals (VChar l) (VChar r) = pure $ VBool (l == r)
+evalOp2 Equals (VStr l) (VStr r) = pure $ VBool (l == r)
+evalOp2 Equals _ _ = pure $ VBool False
+evalOp2 Cons x y = pure $ VCons x y
+evalOp2 EqHuh l r = pure $ VBool (l == r)
 evalOp2 MakeVector (VInt length) defaultValue =
-  do memloc <- incr;
+  do memloc <- incr
      pure $ VVec memloc (replicate length defaultValue)
 evalOp2 VectorRef (VVec _ xs) (VInt idx)
-  | 0 < idx && idx < length xs = return $ xs !! idx
-  | otherwise = return $ error "attempted out-of-bounds reference"
-evalOp2 MakeString (VInt length) (VChar c) = return $ VStr $ replicate length c
+  | 0 < idx && idx < length xs = pure $ xs !! idx
+  | otherwise = pure $ error "attempted out-of-bounds reference"
+evalOp2 MakeString (VInt length) (VChar c) = pure $ VStr $ replicate length c
 evalOp2 StringRef (VStr cs) (VInt idx)
-  | 0 < idx && idx < length cs = return $ VChar $ cs !! idx
-  | otherwise = return $ error "attempted out-of-bounds reference"
+  | 0 < idx && idx < length cs = pure $ VChar $ cs !! idx
+  | otherwise = pure $ error "attempted out-of-bounds reference"
 evalOp2 _ _ _ = error "type error"
+
+evalOp3 :: Op3 -> Val -> Val -> Val -> IncrT m Val
+evalOp3 _ _ _ = undefined
+
+isTruthy :: Val -> Bool
+isTruthy (VBool True) = True
+isTruthy _ = False
+
+eval' :: Ctx -> Expr -> IncrT IO (Ctx, Val)
+eval' ctx Empty          = pure (ctx, VVoid)
+eval' ctx Eof            = pure (ctx, VVoid)
+eval' ctx (Int n)        = pure (ctx, VInt n)
+eval' ctx (Bool b)       = pure (ctx, VBool b)
+eval' ctx (Char c)       = pure (ctx, VChar c)
+eval' ctx (Str s)        = pure (ctx, VStr s)
+eval' ctx (Prim0 op)     = (ctx,) <$> lift (evalOp0 op)
+eval' ctx (Prim1 op arg) = do (_, varg) <- eval' ctx arg
+                              (ctx,) <$> evalOp1 op varg
+eval' ctx (Prim2 op l r) = do (_, vl) <- eval' ctx l
+                              (_, vr) <- eval' ctx r
+                              (ctx,) <$> evalOp2 op vl vr
+eval' ctx (Prim3 op a1 a2 a3) = do (_, va1) <- eval' ctx a1
+                                   (_, va2) <- eval' ctx a2
+                                   (_, va3) <- eval' ctx a3
+                                   (ctx,) <$> evalOp3 op va1 va2 va3
+eval' ctx (If p t f)     = do (_, vp) <- eval' ctx p
+                              (_, vt) <- eval' ctx t
+                              (_, vf) <- eval' ctx f
+                              pure (ctx, if isTruthy vp then vt else vf)
+eval' ctx (Begin l r)    = do (ctx', _) <- eval' ctx l
+                              eval' ctx' r
+eval' ctx (Let binder rexp body) = do (_, vrexp) <- eval' ctx rexp
+                                      let ctx' = M.insert binder vrexp ctx
+                                      eval' ctx' body
+eval' ctx (Var id) = pure (ctx, fromMaybe (error "undefined variable")
+                                 $ M.lookup id ctx)
+
+eval :: Expr -> IO Val
+eval = flip evalIncrT 0 . fmap snd . eval' M.empty
