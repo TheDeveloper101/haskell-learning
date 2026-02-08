@@ -17,6 +17,9 @@ parseIntPos = Int . read <$> some numberChar
 parseIntNeg :: Parser Expr
 parseIntNeg = Int . read <$> ((:) <$> char '-' <*> some numberChar)
 
+parseEmpty :: Parser Expr
+parseEmpty = Empty <$ string "'()"
+
 -- todo: other specially printed racket chars
 parseChar :: Parser Expr
 parseChar = Char <$> (('\n' <$ string "#\\newline")
