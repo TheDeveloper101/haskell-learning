@@ -4,7 +4,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE PolyKinds #-}
 
-module CodegenWasm where
+module CodegenWasm (compileWasm) where
 
 import AST (Expr (..))
 import Language.Wasm.Structure (ValueType(..))
@@ -15,4 +15,4 @@ compileWasm :: Expr -> GenFun (Proxy I64)
 
 compileWasm e = case e of
     Int i -> i64c i
-    otherwise -> trap Proxy
+    _ -> trap Proxy
