@@ -9,6 +9,7 @@ module CodegenWasm (runWasm) where
 
 import AST
 import Language.Wasm.Structure (ValueType(..), Module, Instruction)
+import AST (Expr (..), Op1 (..))
 import Language.Wasm.Builder
 import Data.Proxy
 import Types(valueToBits, bitsToValue)
@@ -48,4 +49,4 @@ compileWasm e = case e of
 compileOp1Wasm :: Op1 -> GenFun ()
 compileOp1Wasm op1 = case op1 of
     Add1 -> ask >>= \loc -> inc (1 :: Natural) (valueToBits (Int (fromIntegral loc))) 
-    
+
