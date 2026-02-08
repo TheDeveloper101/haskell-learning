@@ -15,7 +15,7 @@ import Types(valueToBits, bitsToValue)
 
 
 runWasm :: Expr -> IO ()
-runWasm code = do let address = getAddress code
+runWasm expr = do let address = getAddress (compileWasm expr)
                   invoke emptyStore (error "what address") []
                   pure ()
 
