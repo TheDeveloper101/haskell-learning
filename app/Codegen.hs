@@ -267,8 +267,8 @@ ifEqual = do
 
 typePred :: Int64 -> Int64 -> Code
 typePred mask ty = do
-  and rax mask
-  cmp rax ty
+  and_ rax $ ImmOp $ Immediate mask
+  cmp rax $ ImmOp $ Immediate ty
   ifEqual
 
 findAndReplace :: String -> String -> String -> String
