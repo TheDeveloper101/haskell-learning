@@ -148,6 +148,7 @@ parseLet = do
 parseVar :: Parser Expr
 parseVar = Var <$> parseId
 
+-- TODO: why is try keyword needed now for parsing let
 parseRecursive :: Parser Expr
 parseRecursive = lexeme $ parseEof <|> parseEmpty <|> parseInt <|> parseBool
         <|> parseChar <|> parseString <|> try parseLet <|> parsePrimN <|> parseVar
