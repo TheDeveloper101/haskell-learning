@@ -139,9 +139,12 @@ parseLet = do
   void $ char ')'
   return $ Let i x body
 
+parseVar :: Parser Expr
+parseVar = Var <$> parseId
+
 parseRecursive :: Parser Expr
 parseRecursive = lexeme $ parseEof <|> parseEmpty <|> parseInt <|> parseBool
-        <|> parseChar <|> parseString <|> parseLet <|> parsePrimN
+        <|> parseChar <|> parseString <|> parseLet <|> parsePrimN <|> parseVar
 
 parseExpr :: String -> Either String Expr
 parseExpr input =
