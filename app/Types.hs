@@ -8,6 +8,7 @@ import AST
 import Data.Char (ord, chr)
 import Data.Int (Int64)
 
+immShift, immMask, ptrMask, typeBox, typeCons, typeVect, typeStr, intShift, maskInt, charShift, typeInt, typeChar, maskChar :: Int64
 immShift = 3
 immMask = 0b111
 ptrMask = 0b111
