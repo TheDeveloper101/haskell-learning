@@ -227,6 +227,7 @@ compileMain expr = mdo
   compileExpr errLabel expr
   ret
   errLabel <- label
+  -- TODO: handle errors here
   ret
 
 compileProgramToAsm :: Expr -> String
@@ -255,9 +256,5 @@ compileProgramToAsm mainExpr =
       \  call malloc\n\
       \  pop rdi\n\
       \  mov rbx, rax\n\n"
-      -- epilogue = "\n\
-      -- \  mov rax, 0\n\
-      -- \  ret"
-      epilogue = "\n  ret"
-      fixedCode'' = prelude ++ fixedCode' ++ epilogue
+      fixedCode'' = prelude ++ fixedCode'
    in fixedCode''

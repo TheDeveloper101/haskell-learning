@@ -30,6 +30,7 @@ assertByte err register = do
     j L err
     cmp (RegOp register) $ ImmOp $ Immediate $ valueToBits $ Int 255
     j G err
+assertNatural :: Label -> Reg S64 -> Code
 assertNatural err register = do
     assertInt err register
     cmp (RegOp register) $ ImmOp $ Immediate $ valueToBits $ Int 0
