@@ -3,24 +3,34 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE OverloadedStrings #-}
 
-module CodegenWasm (compileWasm) where
+module CodegenWasm (runWasm) where
 
 import AST (Expr (..))
-import Language.Wasm.Structure (ValueType(..), Expression)
+import Language.Wasm.Structure (ValueType(..), Module)
 import Language.Wasm.Builder
-import Language.Wasm.Interpreter
 import Data.Proxy
 import Types(valueToBits, bitsToValue)
+import Control.Monad(void)
+import Language.Wasm (validate)
+import Data.Either (fromRight)
+import qualified Data.Map as Map
+import Language.Wasm.Interpreter (emptyStore, instantiate, invokeExport, Value)
 
+runWasm :: Expr -> IO (Maybe [Value])
 
-runWasm :: Expr -> IO ()
-runWasm expr = do let address = getAddress (compileWasm expr)
-                  invoke emptyStore (error "what address") []
-                  pure ()
+runWasm = runWasmInt . createModule . compileWasm 
 
-getAddress :: GenFun (Proxy I64) -> Int
-getAddress = error "get me the address pls"
+runWasmInt :: Module -> IO (Maybe [Value])
+runWasmInt mod =
+    do  let validModule = fromRight (error "failed validation") . validate $ mod
+        (maybeModInstance, store) <- instantiate emptyStore Map.empty validModule
+        let modInstance = fromRight (error "failed instantiate") maybeModInstance
+        invokeExport store modInstance "test" []
+
+createModule :: GenFun (Proxy I64) -> Module
+createModule = genMod . export "test" . fun Proxy
 
 compileWasm :: Expr -> GenFun (Proxy I64)
 compileWasm e = case e of
