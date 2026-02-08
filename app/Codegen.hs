@@ -65,6 +65,11 @@ malloc = do
   mov rax rbx
   add rbx rdi
 
+  -- TODO: is this correct?
+  add rbx 4
+  sar rbx 3
+  shl rbx 3
+
 -- Result in rax
 readByte :: Code
 readByte = do
@@ -97,19 +102,20 @@ writeByte = do
 
 compileStr :: String -> Code
 compileStr str = mdo
-  let len = fromIntegral $ 8 * (length str + 1)
+  let len = length str
 
   -- Allocate the memory
   push rdi
-  mov rdi $ ImmOp $ Immediate len
+  mov rdi $ fromIntegral $ 4 * len + 8
   malloc
   mov rdi rax
 
   -- Length at beginning of allocation
-  mov (addr64 (fromReg rax)) (ImmOp (Immediate len))
+  mov (addr64 (fromReg rax)) $ ImmOp $ Immediate $ fromIntegral $ valueToBits $ Int len
 
   -- Put each character onto the allocation
-  _ <- mapM (\c -> add rax 8 >> mov (addr64 (fromReg rax)) (ImmOp (Immediate (valueToBits (Int (ord c)))))) str
+  add rax 8
+  _ <- mapM (\c -> mov (addr32 (fromReg rax)) (ImmOp (Immediate (fromIntegral (ord c)))) >> add rax 4) str
 
   -- Tag the pointer
   mov rax rdi
@@ -367,4 +373,4 @@ compileAndLink :: Expr -> IO ()
 compileAndLink mainExpr = do
   let file = compileProgramToAsm mainExpr
   writeFile "program.s" file
-  callCommand "nasm -felf64 program.s && gcc runtime/*.c program.o -o program"
+  callCommand "nasm -g -felf64 program.s && gcc -g runtime/*.c program.o -o program"
