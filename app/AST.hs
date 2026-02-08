@@ -16,7 +16,8 @@ data Expr = Eof
           | Var Id
           deriving (Eq, Show)
 type Id   = String 
-data Op0  = ReadByte deriving (Eq, Show)
+data Op0  = ReadByte | PeekByte | Void
+          deriving (Eq, Show)
 data Op1  = Add1 | Sub1 | ZeroHuh
           | CharHuh | IntegerToChar | CharToInteger
           | WriteByte | EofObjectHuh
