@@ -1,5 +1,8 @@
-module AST ( Expr (..), Id, Op0 (..), Op1 (..), Op2 (..), Op3 (..) ) where
+module AST ( Defn (..), Expr (..), Id, Op0 (..), Op1 (..), Op2 (..), Op3 (..) ) where
 
+data Defn = DefnVar Id Expr
+          | DefnFn Id [Id] [Expr]
+          deriving (Eq, Show)
 data Expr = Eof
           | Empty
           | Int Int

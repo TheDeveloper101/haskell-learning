@@ -150,7 +150,31 @@ parseVar = Var <$> parseId
 
 parseRecursive :: Parser Expr
 parseRecursive = lexeme $ parseEof <|> parseEmpty <|> parseInt <|> parseBool
-        <|> parseChar <|> parseString <|> parseLet <|> parsePrimN <|> parseVar
+        <|> parseChar <|> parseString <|> try parseLet <|> parsePrimN <|> parseVar
+
+parseDefn :: Parser Defn
+parseDefn = try parseDefnVar <|> parseDefnFn
+
+parseDefnVar :: Parser Defn
+parseDefnVar = do
+  void $ lexeme (char '(')
+  void $ lexeme (string "define")
+  i <- parseId
+  e <- parseRecursive
+  void $ lexeme (char ')')
+  return $ DefnVar i e
+
+parseDefnFn :: Parser Defn
+parseDefnFn = do
+  void $ lexeme (char '(')
+  void $ lexeme (string "define")
+  void $ lexeme (char '(')
+  i <- parseId
+  args <- many parseId
+  void $ lexeme (char ')')
+  e <- many parseRecursive
+  void $ lexeme (char ')')
+  return $ DefnFn i args e
 
 parseExpr :: String -> Either String Expr
 parseExpr input =
