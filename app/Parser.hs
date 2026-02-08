@@ -19,11 +19,17 @@ skipSpace = L.space
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme skipSpace
 
+discard :: String -> Parser ()
+discard p = void $ lexeme (string p)
+
 matchOpenParens :: Parser ()
 matchOpenParens = void $ lexeme $ char '('
 
 matchCloseParens :: Parser ()
 matchCloseParens = void $ lexeme $ char ')'
+
+matchParens :: Parser a -> Parser a
+matchParens p = matchOpenParens *> lexeme p <* matchCloseParens
 
 parseId :: Parser Id
 parseId = lexeme $ some $ noneOf "()[]{}\",'`;#|\\ "
@@ -81,12 +87,10 @@ parseString = Str <$> (char '"' *> many (parseEscapeChar <|> noneOf "\\\"") <* c
     -- TODO: missing \octal, \x, \u, \u\u and \U modes
     -- TODO: handle elided newlines
 
-parsePrimN :: Parser Expr       
-parsePrimN = do
-  matchOpenParens
+parsePrimN :: Parser Expr
+parsePrimN = matchParens $ do
   i <- parseId
   xs <- many parseRecursive
-  matchCloseParens
   case (xs, i) of
     ([], "read-byte") -> return $ Prim0 ReadByte
     ([], "peek-byte") -> return $ Prim0 ReadByte
@@ -132,25 +136,32 @@ parsePrimN = do
 
 
 parseLet :: Parser Expr
-parseLet = do
-  matchOpenParens
-  void $ lexeme (string "let")
-  matchOpenParens
-  matchOpenParens
-  i <- parseId
-  x <- parseRecursive
-  matchCloseParens
-  matchCloseParens
-  body <- parseRecursive
-  matchCloseParens
-  return $ Let i x body
+parseLet = matchParens $ do
+  discard "let"
+  (i, x) <- matchParens . matchParens $ (,) <$> parseId <*> parseRecursive
+  Let i x <$> parseRecursive
 
 parseVar :: Parser Expr
 parseVar = Var <$> parseId
 
+-- TODO: why is try keyword needed now for parsing let
 parseRecursive :: Parser Expr
 parseRecursive = lexeme $ parseEof <|> parseEmpty <|> parseInt <|> parseBool
-        <|> parseChar <|> parseString <|> parseLet <|> parsePrimN <|> parseVar
+        <|> parseChar <|> parseString <|> try parseLet <|> parsePrimN <|> parseVar
+
+parseDefn :: Parser Defn
+parseDefn = try parseDefnVar <|> parseDefnFn
+
+parseDefnVar :: Parser Defn
+parseDefnVar = matchParens $ do
+  discard "define"
+  DefnVar <$> parseId <*> parseRecursive
+
+parseDefnFn :: Parser Defn
+parseDefnFn = matchParens $ do
+  discard "define"
+  (i, args) <- matchParens $ (,) <$> parseId <*> many parseId
+  DefnFn i args <$> many parseRecursive
 
 parseExpr :: String -> Either String Expr
 parseExpr input =
