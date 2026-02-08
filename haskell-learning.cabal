@@ -64,7 +64,8 @@ executable haskell-learning
     other-modules:    AST,
                       Evaluation,
                       Parser,
-                      Codegen
+                      Codegen,
+                      Types
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -75,7 +76,8 @@ executable haskell-learning
                       megaparsec,
                       transformers,
                       x86-64bit,
-                      process
+                      process,
+                      cond
 
     -- Directories containing source files.
     hs-source-dirs:   app
