@@ -6,9 +6,10 @@ module Evaluation where
 
 import AST
 import qualified Data.Map as M
+import qualified Data.Sequence as S
 import Control.Monad.Trans.State.Strict (StateT, put, get, evalStateT)
 import Control.Monad.Trans.Class (lift, MonadTrans)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, fromJust)
 
 data Ty = TInt | TBool | TChar | TStr | TVec | TList | TBox deriving (Eq, Show)
 
@@ -19,7 +20,7 @@ data Val
   | VStr String
   | VCons Val Val
   | VNull
-  | VVec Int [Val]
+  | VVec Int (S.Seq Val)
   | VBox Int Val
   | VVoid
   deriving (Eq, Show)
@@ -76,9 +77,9 @@ evalOp2 Cons x y = pure $ VCons x y
 evalOp2 EqHuh l r = pure $ VBool (l == r)
 evalOp2 MakeVector (VInt length) defaultValue =
   do memloc <- incr
-     pure $ VVec memloc (replicate length defaultValue)
+     pure $ VVec memloc (S.replicate length defaultValue)
 evalOp2 VectorRef (VVec _ xs) (VInt idx)
-  | 0 < idx && idx < length xs = pure $ xs !! idx
+  | 0 < idx && idx < length xs = pure . fromJust $ S.lookup idx xs
   | otherwise = pure $ error "attempted out-of-bounds reference"
 evalOp2 MakeString (VInt length) (VChar c) = pure $ VStr $ replicate length c
 evalOp2 StringRef (VStr cs) (VInt idx)
@@ -86,8 +87,11 @@ evalOp2 StringRef (VStr cs) (VInt idx)
   | otherwise = pure $ error "attempted out-of-bounds reference"
 evalOp2 _ _ _ = error "type error"
 
-evalOp3 :: Op3 -> Val -> Val -> Val -> IncrT m Val
-evalOp3 _ _ _ = undefined
+-- I think we need actual mutability or simulated state to make this work.
+evalOp3 :: Op3 -> Val -> Val -> Val -> IO Val
+evalOp3 VectorSetBang (VVec _ vec) (VInt idx) newVal
+  | 0 <= idx && idx < length vec = undefined
+evalOp3 _ _ _ _ = error "type error"
 
 isTruthy :: Val -> Bool
 isTruthy (VBool True) = True
