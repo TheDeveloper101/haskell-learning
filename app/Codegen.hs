@@ -117,7 +117,13 @@ compileExpr errLabel expr = mdo
   case expr of
     Prim1 op expr1 -> compileOp1 errLabel op expr1
     Prim2 op expr1 expr2 -> compileOp2 errLabel op expr1 expr2
+    Begin expr1 expr2 -> compileBegin errLabel expr1 expr2
     _ -> compileDatum expr
+
+compileBegin :: Label -> Expr -> Expr -> Code
+compileBegin errLabel expr1 expr2 = do
+  compileExpr errLabel expr1
+  compileExpr errLabel expr2
 
 compileDatum :: Expr -> Code
 compileDatum expr = mdo
