@@ -27,30 +27,30 @@ data Val
 
 type Ctx = M.Map Id Val
 
-evalOp0 :: Op0 -> Val
-evalOp0 ReadByte = VInt (ord <$> getChar)
+evalOp0 :: Op0 -> IO Val
+evalOp0 ReadByte = VChar <$> getChar
 
-evalOp1 :: Op1 -> Val -> Val
-evalOp1 Add1 (VInt v) = VInt (v + 1)
-evalOp1 Sub1 (VInt v) = VInt (v - 1)
-evalOp1 ZeroHuh (VInt v) = VBool (v == 0)
---evalOp1 IntegerToChar (VInt v) = VChar (read v)
---evalOp1 CharToInteger (VChar c) = VInt (read c)
---evalOp1 WriteByte (VInt v) = chr v <$> getChar
-evalOp1 EofObjectHuh v = VBool (v == VEoF)
-evalOp1 Box val = VBox val
-evalOp1 Car (VVec _ v) = head v
-evalOp1 Cdr (VVec _ v) = VVec (tail v)
-evalOp1 Unbox (VBox _ v) = v
-evalOp1 EmptyHuh v = VBool (v == VNull)
-evalOp1 ConsHuh (VCons _ _) = VBool True
-evalOp1 ConsHuh _ = VBool False
-evalOp1 BoxHuh (VBox _ _) = VBool True
-evalOp1 BoxHuh _ = VBool False
-evalOp1 VectorHuh (VVec _ _) = VBool True
-evalOp1 VectorHuh _ = VBool False
-evalOp1 VectorLength (VVec _ v) = VInt (length v)
-evalOp1 _ _ = error "todo"
+-- evalOp1 :: Op1 -> Val -> Val
+-- evalOp1 Add1 (VInt v) = VInt (v + 1)
+-- evalOp1 Sub1 (VInt v) = VInt (v - 1)
+-- evalOp1 ZeroHuh (VInt v) = VBool (v == 0)
+-- --evalOp1 IntegerToChar (VInt v) = VChar (read v)
+-- --evalOp1 CharToInteger (VChar c) = VInt (read c)
+-- --evalOp1 WriteByte (VInt v) = chr v <$> getChar
+-- evalOp1 EofObjectHuh v = VBool (v == VEoF)
+-- --evalOp1 Box val = VBox (Incr ) val
+-- evalOp1 Car (VVec _ v) = head v
+-- -- evalOp1 Cdr (VVec _ v) = VVec (tail v)
+-- evalOp1 Unbox (VBox _ v) = v
+-- evalOp1 EmptyHuh v = VBool (v == VNull)
+-- evalOp1 ConsHuh (VCons _ _) = VBool True
+-- evalOp1 ConsHuh _ = VBool False
+-- evalOp1 BoxHuh (VBox _ _) = VBool True
+-- evalOp1 BoxHuh _ = VBool False
+-- evalOp1 VectorHuh (VVec _ _) = VBool True
+-- evalOp1 VectorHuh _ = VBool False
+-- evalOp1 VectorLength (VVec _ v) = VInt (length v)
+-- evalOp1 _ _ = error "todo"
 -- evalOp1 CharHuh expr = 
 -- evalOp1 IntegerToChar expr 
 
