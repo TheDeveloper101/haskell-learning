@@ -75,7 +75,7 @@ parseString = Str <$> (char '"' *> many (parseEscapeChar <|> noneOf "\\\"") <* c
     -- TODO: missing \octal, \x, \u, \u\u and \U modes
     -- TODO: handle elided newlines
 
-parsePrimN :: Parser Expr
+parsePrimN :: Parser Expr       
 parsePrimN = do
   void $ lexeme (char '(')
   i <- parseId
@@ -119,7 +119,11 @@ parsePrimN = do
 
     ([x, y, z], "vector-set!") -> return $ Prim3 VectorSetBang x y z
 
+    ([x, y, z], "if")          -> return $ If x y z
+    ([x, y],    "begin")       -> return $ Begin x y
+
     _ -> fail "Invalid primN operation"
+
 
 parseLet :: Parser Expr
 parseLet = do
@@ -137,7 +141,7 @@ parseLet = do
 
 parseRecursive :: Parser Expr
 parseRecursive = lexeme $ parseEof <|> parseEmpty <|> parseInt <|> parseBool
-        <|> parseChar <|> parseString <|> parsePrimN <|> parseLet
+        <|> parseChar <|> parseString <|> parseLet <|> parsePrimN
 
 parseExpr :: String -> Either String Expr
 parseExpr input =
