@@ -8,18 +8,31 @@ import AST
 import Data.Char (ord, chr)
 import Data.Int (Int64)
 
+immShift :: Int
 immShift = 3
+immMask :: Int64
 immMask = 0b111
+ptrMask :: Int64
 ptrMask = 0b111
+typeBox :: Integer
 typeBox = 0b001
+typeCons :: Integer
 typeCons = 0b010
+typeVect :: Integer
 typeVect = 0b011
+typeStr :: Integer
 typeStr = 0b100
+intShift :: Int
 intShift = 1 + immShift
+maskInt :: Int64
 maskInt = 0b1111
+charShift :: Int
 charShift = 2 + immShift
+typeInt :: Int64
 typeInt = 0b0000
+typeChar :: Int64
 typeChar = 0b01000
+maskChar :: Int64
 maskChar = 0b11111
 
 valueToBits :: Expr -> Int64
