@@ -7,7 +7,7 @@
 
 module CodegenWasm (runWasm) where
 
-import AST (Expr (..), Op1)
+import AST
 import Language.Wasm.Structure (ValueType(..), Module, Instruction)
 import Language.Wasm.Builder
 import Data.Proxy
@@ -18,6 +18,8 @@ import Data.Either (fromRight)
 import qualified Data.Map as Map
 import Language.Wasm.Interpreter (emptyStore, instantiate, invokeExport, Value (VI64))
 import Unsafe.Coerce (unsafeCoerce)
+import Control.Monad.Trans.Reader (ask)
+import GHC.Natural (Natural)
 
 extractResult :: Value -> Expr
 extractResult (VI64 v) = bitsToValue (unsafeCoerce v)
@@ -40,9 +42,10 @@ compileWasm e = case e of
     Int i -> i64c (valueToBits (Int i))
     Bool b -> i64c (valueToBits (Bool b))
     Char c -> i64c (valueToBits (Char c))
-    Prim1 op1 e -> compileWasm e >> compileOp1Wasm op1
+    Prim1 op1 e -> compileWasm e >> compileOp1Wasm op1 >> pure Proxy
     _ -> trap Proxy
 
-compileOp1Wasm :: Op1 -> GenFun (Proxy I64)
+compileOp1Wasm :: Op1 -> GenFun ()
 compileOp1Wasm op1 = case op1 of
-    Add1 -> inc (valueToBits 1) 
+    Add1 -> ask >>= \loc -> inc (1 :: Natural) (valueToBits (Int (fromIntegral loc))) 
+    
