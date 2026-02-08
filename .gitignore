@@ -46,3 +46,8 @@ cabal.project.local~
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,haskell
+
+### Compiled program ###
+/program
+/program.s
+/program.o

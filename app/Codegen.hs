@@ -12,11 +12,6 @@ import Assertx86
 
 type Ctx = Integer
 
-build :: Code -> IO ()
-build c = do
-  writeFile "racket-test.o" (show c)
-  callCommand "ld racket-test.o"
-
 wrapBool :: Code
 wrapBool = mdo
   cmp rax 0
@@ -50,6 +45,22 @@ popCallerSaved = do
   pop rdx
   pop rcx
   pop rax
+
+pushCalleeSaved :: Code
+pushCalleeSaved = do
+  push rbx
+  push r12
+  push r13
+  push r14
+  push r15
+
+popCalleeSaved :: Code
+popCalleeSaved = do
+  pop r15
+  pop r14
+  pop r13
+  pop r12
+  pop rbx
 
 -- Arg in rdi
 -- Puts result in rax as usual
@@ -224,31 +235,30 @@ findAndReplace orig new str = unpack $ replace (pack orig) (pack new) (pack str)
 
 compileMain :: Expr -> Code
 compileMain expr = mdo
+  pushCalleeSaved
   compileExpr errLabel expr
+  popCalleeSaved
   ret
   errLabel <- label
   -- TODO: handle errors here
-  ret
+  mov xmm0 xmm4
 
 compileProgramToAsm :: Expr -> String
 compileProgramToAsm mainExpr =
   let mainCode = compileMain mainExpr
       code = show mainCode
-      -- HACK: Replace xmm movs with appropriate calls :))
-      replacements =
-        [ ("mov xmm0, xmm1", "call readByte"),
-          ("mov xmm0, xmm2", "call peekByte"),
-          ("mov xmm0, xmm3", "call writeByte")
-        ]
-      fixedCode = foldl (\acc (orig, new) -> findAndReplace orig new acc) code replacements
       -- Remove hexdump + opcodes
       dropColsIf line = case line of
         '.':_ -> line ++ ":"
         _ -> (unwords . drop 2 . words) line
-      fixedCode' = (unlines . map (("  " ++) . dropColsIf) . lines) fixedCode
+      fixedCode = (unlines . map (("  " ++) . dropColsIf) . lines) code
       -- Add prelude & epilogue
       prelude = "global main\n\
       \extern malloc\n\n\
+      \extern read_byte\n\n\
+      \extern peek_byte\n\n\
+      \extern write_byte\n\n\
+      \extern print_result\n\n\
       \section .text\n\n\
       \main:\n\
       \  push rdi\n\
@@ -256,5 +266,19 @@ compileProgramToAsm mainExpr =
       \  call malloc\n\
       \  pop rdi\n\
       \  mov rbx, rax\n\n"
-      fixedCode'' = prelude ++ fixedCode'
+      fixedCode' = prelude ++ fixedCode
+      -- HACK: Replace xmm movs with appropriate calls :))
+      replacements =
+        [ ("mov xmm0, xmm1", "call read_byte"),
+          ("mov xmm0, xmm2", "call peek_byte"),
+          ("mov xmm0, xmm3", "call write_byte"),
+          ("mov xmm0, xmm4", "mov rdi, 255\n  mov rax, 60\n  syscall")
+        ]
+      fixedCode'' = foldl (\acc (orig, new) -> findAndReplace orig new acc) fixedCode' replacements
    in fixedCode''
+
+compileAndLink :: Expr -> IO ()
+compileAndLink mainExpr = do
+  let file = compileProgramToAsm mainExpr
+  writeFile "program.s" file
+  callCommand "nasm -felf64 program.s && gcc runtime/*.c program.o -o program"
