@@ -27,7 +27,7 @@ valueToBits e = case e of
     Int i -> shiftL i intShift
     Bool b -> (if b then 0b00011000 else 0b00111000)
     Eof -> 0b01011000
-    Char c -> typeChar .|. shiftL (ord c) charShift
+    Char c -> typeChar .|. shiftL charShift (ord c)
     _ -> -1
 
 bitsToValue :: Int -> Expr
@@ -35,8 +35,8 @@ bitsToValue :: Int -> Expr
 bitsToValue b = cond [(valueToBits (Bool True) == b, Bool True )
                   , (valueToBits (Bool False) == b, Bool False )
                   , (valueToBits Eof == b, Eof )
-                  , (bitsIsInt b, Int (shiftL b (-1 * intShift)))
-                  , (bitsIsChar b, Char (chr (shiftL b (-1 * charShift))))
+                  , (bitsIsInt b, Int (shiftR b intShift))
+                  , (bitsIsChar b, Char (chr (shiftR b charShift)))
                   , (otherwise , Eof)]
 
 bitsIsInt :: Int -> Bool
