@@ -5,12 +5,13 @@ import AST (Expr)
 import CodeGen.X86 (jmp, nop, Code, CodeM, ret, label, j)
 import CodeGen.X86.Asm (Label(Label))
 import System.Process (callCommand)
+import System.IO (hFlush)
 
 type Ctx = Integer
 
 build :: Code -> IO ()
 build c = do
-  writeFile (show c) "racket-test.o"
+  writeFile "racket-test.o" (show c) 
   callCommand "ld racket-test.o"
 
 compileTest :: Code
