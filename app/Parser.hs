@@ -121,9 +121,23 @@ parsePrimN = do
 
     _ -> fail "Invalid primN operation"
 
+parseLet :: Parser Expr
+parseLet = do
+  void $ lexeme (char '(')
+  void $ lexeme (string "let")
+  void $ lexeme (char '(')
+  void $ lexeme (char '(')
+  i <- parseId
+  x <- parseRecursive
+  void $ lexeme (char ')')
+  void $ lexeme (char ')')
+  body <- parseRecursive
+  void $ char ')'
+  return $ Let i x body
+
 parseRecursive :: Parser Expr
 parseRecursive = lexeme $ parseEof <|> parseEmpty <|> parseInt <|> parseBool
-        <|> parseChar <|> parseString <|> parsePrimN
+        <|> parseChar <|> parseString <|> parsePrimN <|> parseLet
 
 parseExpr :: String -> Either String Expr
 parseExpr input =
