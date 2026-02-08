@@ -28,6 +28,9 @@ matchOpenParens = void $ lexeme $ char '('
 matchCloseParens :: Parser ()
 matchCloseParens = void $ lexeme $ char ')'
 
+matchParens :: Parser a -> Parser a
+matchParens p = matchOpenParens *> lexeme p <* matchCloseParens
+
 parseId :: Parser Id
 parseId = lexeme $ some $ noneOf "()[]{}\",'`;#|\\ "
 
@@ -84,12 +87,10 @@ parseString = Str <$> (char '"' *> many (parseEscapeChar <|> noneOf "\\\"") <* c
     -- TODO: missing \octal, \x, \u, \u\u and \U modes
     -- TODO: handle elided newlines
 
-parsePrimN :: Parser Expr       
-parsePrimN = do
-  matchOpenParens
+parsePrimN :: Parser Expr
+parsePrimN = matchParens $ do
   i <- parseId
   xs <- many parseRecursive
-  matchCloseParens
   case (xs, i) of
     ([], "read-byte") -> return $ Prim0 ReadByte
     ([], "peek-byte") -> return $ Prim0 ReadByte
@@ -135,18 +136,10 @@ parsePrimN = do
 
 
 parseLet :: Parser Expr
-parseLet = do
-  matchOpenParens
+parseLet = matchParens $ do
   discard "let"
-  matchOpenParens
-  matchOpenParens
-  i <- parseId
-  x <- parseRecursive
-  matchCloseParens
-  matchCloseParens
-  body <- parseRecursive
-  matchCloseParens
-  return $ Let i x body
+  (i, x) <- matchParens . matchParens $ (,) <$> parseId <*> parseRecursive
+  Let i x <$> parseRecursive
 
 parseVar :: Parser Expr
 parseVar = Var <$> parseId
@@ -160,25 +153,15 @@ parseDefn :: Parser Defn
 parseDefn = try parseDefnVar <|> parseDefnFn
 
 parseDefnVar :: Parser Defn
-parseDefnVar = do
-  void $ lexeme (char '(')
+parseDefnVar = matchParens $ do
   discard "define"
-  i <- parseId
-  e <- parseRecursive
-  void $ lexeme (char ')')
-  return $ DefnVar i e
+  DefnVar <$> parseId <*> parseRecursive
 
 parseDefnFn :: Parser Defn
-parseDefnFn = do
-  void $ lexeme (char '(')
+parseDefnFn = matchParens $ do
   discard "define"
-  void $ lexeme (char '(')
-  i <- parseId
-  args <- many parseId
-  void $ lexeme (char ')')
-  e <- many parseRecursive
-  void $ lexeme (char ')')
-  return $ DefnFn i args e
+  (i, args) <- matchParens $ (,) <$> parseId <*> many parseId
+  DefnFn i args <$> many parseRecursive
 
 parseExpr :: String -> Either String Expr
 parseExpr input =
