@@ -10,7 +10,6 @@ import Data.Int
 import System.Process (callCommand)
 import Types
 import Assertx86
-import Text.Megaparsec (MonadParsec(eof))
 
 type Ctx = Integer
 
@@ -260,6 +259,29 @@ compileOp2 errLabel op expr1 expr2 = mdo
       add rbx 8
       end <- label
       nop
+    --MakeString -> mdo
+    --  pop r8
+    --  assertNatural r8
+    --  assertChar rax
+
+    --  -- Special case for length = 0
+    --  cmp r8 0
+    --  j NE nonzero
+    --  -- Return canonical repr
+    --  mov rax typeStr
+    --  jmp end
+
+    --  -- Code the nonzero case
+    --  nonzero <- label
+
+    --  mov (MemOp $ Addr (Just rbx) (Just 0) NoIndex) r8
+    --  sar r8 2
+    --  mov r9 r8
+
+    --  sar rax charShift
+
+    --  loop <- label
+    --  mov (MemOp $ Addr (Just rbx) (Just ))
     _ -> error "todo"
 
 ifLessThan :: Code
