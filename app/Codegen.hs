@@ -5,6 +5,7 @@ module Codegen where
 import AST
 import CodeGen.X86
 import CodeGen.X86.Asm
+import Data.Char (ord)
 import Data.Text (pack, replace, unpack)
 import Data.Int
 import System.Process (callCommand)
@@ -96,19 +97,26 @@ writeByte = do
 
 compileStr :: String -> Code
 compileStr str = mdo
-  let len = fromIntegral $ length str
+  let len = fromIntegral $ 8 * (length str + 1)
 
   -- Allocate the memory
   push rdi
   mov rdi $ ImmOp $ Immediate len
   malloc
-  pop rdi
+  mov rdi rax
 
   -- Length at beginning of allocation
   mov (addr64 (fromReg rax)) (ImmOp (Immediate len))
 
   -- Put each character onto the allocation
-  _ <- mapM (\c -> add rax 8 >> mov (addr64 (fromReg rax)) (ImmOp (Immediate (valueToBits (Char c))))) str
+  _ <- mapM (\c -> add rax 8 >> mov (addr64 (fromReg rax)) (ImmOp (Immediate (valueToBits (Int (ord c)))))) str
+
+  -- Tag the pointer
+  mov rax rdi
+  xor_ rax $ fromIntegral typeStr
+
+  pop rdi
+
   return ()
 
 compileExpr :: Label -> Expr -> Code
@@ -308,10 +316,16 @@ findAndReplace orig new str = unpack $ replace (pack orig) (pack new) (pack str)
 compileMain :: Expr -> Code
 compileMain expr = mdo
   pushCalleeSaved
+
   compileExpr errLabel expr
+  mov rdi rax
+  mov xmm0 xmm5 -- print the result
+
   popCalleeSaved
   ret
   errLabel <- label
+  mov rdi 255
+  mov rax 60
   mov xmm0 xmm4
 
 compileProgramToAsm :: Expr -> String
@@ -343,7 +357,8 @@ compileProgramToAsm mainExpr =
         [ ("mov xmm0, xmm1", "call read_byte"),
           ("mov xmm0, xmm2", "call peek_byte"),
           ("mov xmm0, xmm3", "call write_byte"),
-          ("mov xmm0, xmm4", "mov rdi, 255\n  mov rax, 60\n  syscall")
+          ("mov xmm0, xmm4", "syscall"),
+          ("mov xmm0, xmm5", "call print_result")
         ]
       fixedCode'' = foldl (\acc (orig, new) -> findAndReplace orig new acc) fixedCode' replacements
    in fixedCode''
