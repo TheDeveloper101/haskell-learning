@@ -1,0 +1,28 @@
+{-# LANGUAGE RecursiveDo #-}
+
+module Codegen where
+import AST (Expr)
+import CodeGen.X86 (jmp, nop, Code, CodeM, ret, label, j)
+import CodeGen.X86.Asm (Label(Label))
+
+type Ctx = Integer
+
+compileTest :: Code
+compileTest = do
+  ret
+  nop
+  ret
+
+compileExpr :: Expr -> Code
+compileExpr expr = mdo
+  nop
+  ret
+  l1 <- label
+  compileTest
+  jmp l4
+  l2 <- label
+  jmp l2
+  l3 <- label
+  jmp l3
+  l4 <- label
+  jmp l4
