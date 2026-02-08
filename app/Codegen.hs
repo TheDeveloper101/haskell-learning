@@ -1,9 +1,11 @@
 {-# LANGUAGE RecursiveDo #-}
 
 module Codegen where
+
 import AST
 import CodeGen.X86
 import CodeGen.X86.Asm
+import Data.Text (pack, replace, unpack)
 import System.Process (callCommand)
 import Types
 import Assertx86
@@ -25,7 +27,9 @@ wrapBool = mdo
 
 charHuh :: Code
 charHuh = mdo
-  and_ rax $ ImmOp $ Immediate ptrMask
+  and_ rax $ ImmOp $ Immediate maskChar
+  cmp rax $ ImmOp $ Immediate typeChar
+  ifEqual
 
 pushCallerSaved :: Code
 pushCallerSaved = do
@@ -98,12 +102,6 @@ compileStr str = mdo
   _ <- mapM (\c -> add rax 8 >> mov (addr64 (fromReg rax)) (ImmOp (Immediate (valueToBits (Char c))))) str
   return ()
 
-compile :: Expr -> Code
-compile expr = mdo
-  compileExpr errLabel expr
-  errLabel <- label
-  nop
-
 compileExpr :: Label -> Expr -> Code
 compileExpr errLabel expr = mdo
   case expr of
@@ -119,6 +117,7 @@ compileDatum expr = mdo
     Char val -> mov rax $ ImmOp $ Immediate $ valueToBits $ Char val
     Str str -> compileStr str
     Eof -> mov rax $ ImmOp $ Immediate $ valueToBits Eof
+    Prim0 op -> compileOp0 op
 
 compileOp0 :: Op0 -> Code
 compileOp0 ReadByte = readByte
@@ -130,7 +129,7 @@ compileOp1 errLabel op expr = mdo
    case op of
      Add1 -> add rax $ ImmOp $ Immediate $ valueToBits $ Int 1
      Sub1 -> sub rax $ ImmOp $ Immediate $ valueToBits $ Int 1
-     ZeroHuh -> inc rax
+     CharHuh -> charHuh
       
      _ -> error "todo"
 
@@ -219,3 +218,46 @@ ifEqual = do
   mov rax $ ImmOp $ Immediate $ valueToBits $ Bool False
   mov r9 $ ImmOp $ Immediate $ valueToBits $ Bool True
   cmov E rax r9
+
+findAndReplace :: String -> String -> String -> String
+findAndReplace orig new str = unpack $ replace (pack orig) (pack new) (pack str)
+
+compileMain :: Expr -> Code
+compileMain expr = mdo
+  compileExpr errLabel expr
+  ret
+  errLabel <- label
+  ret
+
+compileProgramToAsm :: Expr -> String
+compileProgramToAsm mainExpr =
+  let mainCode = compileMain mainExpr
+      code = show mainCode
+      -- HACK: Replace xmm movs with appropriate calls :))
+      replacements =
+        [ ("mov xmm0, xmm1", "call readByte"),
+          ("mov xmm0, xmm2", "call peekByte"),
+          ("mov xmm0, xmm3", "call writeByte")
+        ]
+      fixedCode = foldl (\acc (orig, new) -> findAndReplace orig new acc) code replacements
+      -- Remove hexdump + opcodes
+      dropColsIf line = case line of
+        '.':_ -> line ++ ":"
+        _ -> (unwords . drop 2 . words) line
+      fixedCode' = (unlines . map (("  " ++) . dropColsIf) . lines) fixedCode
+      -- Add prelude & epilogue
+      prelude = "global main\n\
+      \extern malloc\n\n\
+      \section .text\n\n\
+      \main:\n\
+      \  push rdi\n\
+      \  mov rdi, 100000\n\
+      \  call malloc\n\
+      \  pop rdi\n\
+      \  mov rbx, rax\n\n"
+      -- epilogue = "\n\
+      -- \  mov rax, 0\n\
+      -- \  ret"
+      epilogue = "\n  ret"
+      fixedCode'' = prelude ++ fixedCode' ++ epilogue
+   in fixedCode''

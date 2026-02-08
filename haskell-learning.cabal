@@ -80,7 +80,8 @@ executable haskell-learning
                       x86-64bit,
                       process,
                       cond,
-                      wasm
+                      wasm,
+                      text
 
     -- Directories containing source files.
     hs-source-dirs:   app
