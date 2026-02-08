@@ -19,6 +19,12 @@ skipSpace = L.space
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme skipSpace
 
+matchOpenParens :: Parser ()
+matchOpenParens = void $ lexeme $ char '('
+
+matchCloseParens :: Parser ()
+matchCloseParens = void $ lexeme $ char ')'
+
 parseId :: Parser Id
 parseId = lexeme $ some $ noneOf "()[]{}\",'`;#|\\ "
 
@@ -77,10 +83,10 @@ parseString = Str <$> (char '"' *> many (parseEscapeChar <|> noneOf "\\\"") <* c
 
 parsePrimN :: Parser Expr       
 parsePrimN = do
-  void $ lexeme (char '(')
+  matchOpenParens
   i <- parseId
   xs <- many parseRecursive
-  void $ char ')'
+  matchCloseParens
   case (xs, i) of
     ([], "read-byte") -> return $ Prim0 ReadByte
     ([], "peek-byte") -> return $ Prim0 ReadByte
@@ -127,16 +133,16 @@ parsePrimN = do
 
 parseLet :: Parser Expr
 parseLet = do
-  void $ lexeme (char '(')
+  matchOpenParens
   void $ lexeme (string "let")
-  void $ lexeme (char '(')
-  void $ lexeme (char '(')
+  matchOpenParens
+  matchOpenParens
   i <- parseId
   x <- parseRecursive
-  void $ lexeme (char ')')
-  void $ lexeme (char ')')
+  matchCloseParens
+  matchCloseParens
   body <- parseRecursive
-  void $ char ')'
+  matchCloseParens
   return $ Let i x body
 
 parseVar :: Parser Expr
