@@ -5,7 +5,6 @@ import AST (Expr)
 import CodeGen.X86 (jmp, nop, Code, CodeM, ret, label, j)
 import CodeGen.X86.Asm (Label(Label))
 import System.Process (callCommand)
-import System.IO (hFlush)
 
 type Ctx = Integer
 
