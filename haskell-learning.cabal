@@ -62,11 +62,12 @@ executable haskell-learning
 
     -- Modules included in this executable, other than Main.
     other-modules:    AST,
-                      Evaluation,
+                      -- Evaluation,
                       Parser,
                       Codegen,
                       Types,
                       CodegenWasm,
+                      Assertx86
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
