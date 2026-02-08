@@ -15,5 +15,5 @@ import Types(valueToBits, bitsToValue)
 compileWasm :: Expr -> GenFun (Proxy I64)
 
 compileWasm e = case e of
-    Int i -> i64c (valueToBits i)
+    Int i -> i64c (valueToBits (Int i))
     _ -> trap Proxy
