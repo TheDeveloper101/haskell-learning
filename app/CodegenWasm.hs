@@ -16,11 +16,14 @@ import Control.Monad(void)
 import Language.Wasm (validate)
 import Data.Either (fromRight)
 import qualified Data.Map as Map
-import Language.Wasm.Interpreter (emptyStore, instantiate, invokeExport, Value)
+import Language.Wasm.Interpreter (emptyStore, instantiate, invokeExport, Value (VI64))
+import Unsafe.Coerce (unsafeCoerce)
 
-runWasm :: Expr -> IO (Maybe [Value])
+extractResult :: Value -> Expr
+extractResult (VI64 v) = bitsToValue (unsafeCoerce v)
 
-runWasm = runWasmInt . createModule . compileWasm 
+runWasm :: Expr -> IO (Maybe [Expr])
+runWasm = (fmap . fmap . fmap) extractResult . runWasmInt . createModule . compileWasm 
 
 runWasmInt :: Module -> IO (Maybe [Value])
 runWasmInt mod =
