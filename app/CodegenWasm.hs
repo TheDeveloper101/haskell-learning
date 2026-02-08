@@ -7,8 +7,8 @@
 
 module CodegenWasm (runWasm) where
 
-import AST (Expr (..))
-import Language.Wasm.Structure (ValueType(..), Module)
+import AST (Expr (..), Op1)
+import Language.Wasm.Structure (ValueType(..), Module, Instruction)
 import Language.Wasm.Builder
 import Data.Proxy
 import Types(valueToBits, bitsToValue)
@@ -40,5 +40,9 @@ compileWasm e = case e of
     Int i -> i64c (valueToBits (Int i))
     Bool b -> i64c (valueToBits (Bool b))
     Char c -> i64c (valueToBits (Char c))
+    Prim1 op1 e -> compileWasm e >> compileOp1Wasm op1
     _ -> trap Proxy
 
+compileOp1Wasm :: Op1 -> GenFun (Proxy I64)
+compileOp1Wasm op1 = case op1 of
+    Add1 -> inc (valueToBits 1) 
