@@ -4,8 +4,14 @@ module Codegen where
 import AST (Expr)
 import CodeGen.X86 (jmp, nop, Code, CodeM, ret, label, j)
 import CodeGen.X86.Asm (Label(Label))
+import System.Process (callCommand)
 
 type Ctx = Integer
+
+build :: Code -> IO ()
+build c = do
+  writeFile (show c) "racket-test.o"
+  callCommand "ld racket-test.o"
 
 compileTest :: Code
 compileTest = do

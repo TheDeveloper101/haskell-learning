@@ -74,7 +74,8 @@ executable haskell-learning
                       containers,
                       megaparsec,
                       transformers,
-                      x86-64bit
+                      x86-64bit,
+                      process
 
     -- Directories containing source files.
     hs-source-dirs:   app
