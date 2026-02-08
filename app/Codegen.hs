@@ -6,6 +6,7 @@ import CodeGen.X86
 import CodeGen.X86.Asm
 import Data.Int
 import System.Process (callCommand)
+import Types(valueToBits, bitsToValue)
 
 type Ctx = Integer
 
@@ -56,7 +57,13 @@ compileStr str = mdo
 compileExpr :: Expr -> Code
 compileExpr expr = mdo
   case expr of
-    Int val -> mov rax $ ImmOp $ Immediate 5
-    Bool val -> mov rax $ ImmOp $ Immediate 6
-    Char char -> mov rax $ ImmOp $ Immediate 7
+    _ -> compileDatum expr
+
+compileDatum :: Expr -> Code
+compileDatum expr = mdo
+  case expr of
+    Int val -> mov rax $ ImmOp $ Immediate $ fromIntegral $ valueToBits $ Int val
+    Bool val -> mov rax $ ImmOp $ Immediate $ fromIntegral $ valueToBits $ Bool val
+    Char val -> mov rax $ ImmOp $ Immediate $ fromIntegral $ valueToBits $ Char val
     Str str -> compileStr str
+    Eof -> mov rax $ ImmOp $ Immediate $ fromIntegral $ valueToBits Eof

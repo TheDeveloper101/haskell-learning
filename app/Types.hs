@@ -22,12 +22,11 @@ typeChar = 0b01000
 maskChar = 0b11111
 
 valueToBits :: Expr -> Int
-
 valueToBits e = case e of
     Int i -> shiftL i intShift
     Bool b -> (if b then 0b00011000 else 0b00111000)
     Eof -> 0b01011000
-    Char c -> typeChar .|. shiftL (ord c) charShift
+    Char c -> typeChar .|. shiftL (ord c) charShift 
     _ -> -1
 
 bitsToValue :: Int -> Expr
