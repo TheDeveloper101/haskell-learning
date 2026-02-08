@@ -87,9 +87,12 @@ peekByte = do
 writeByte :: Code
 writeByte = do
   pushCallerSaved
+  push rdi
+  mov rdi rax
 
   mov xmm0 xmm3
 
+  pop rdi
   popCallerSaved
 
 compileStr :: String -> Code
