@@ -67,6 +67,7 @@ executable haskell-learning
                       Codegen,
                       Types,
                       CodegenWasm,
+                      Assertx86
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

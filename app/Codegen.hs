@@ -1,7 +1,6 @@
 {-# LANGUAGE RecursiveDo #-}
 
 module Codegen where
-
 import AST
 import CodeGen.X86
 import CodeGen.X86.Asm
@@ -99,6 +98,7 @@ compileStr str = mdo
 compileExpr :: Expr -> Code
 compileExpr expr = mdo
   case expr of
+    Prim1 op expr -> compileOp1 op expr
     _ -> compileDatum expr
 
 compileOp0 :: Op0 -> Code
@@ -107,12 +107,12 @@ compileOp0 op = do
     ReadByte -> readByte
     PeekByte -> peekByte
 
-compileOp1 :: Op1 -> Code
-compileOp1 op = do
-  case op of
+compileOp1 :: Op1 -> Expr -> Code
+compileOp1 op = undefined --do
+  --case op of
     -- TODO: type assertions
-    Add1 -> inc rax
-    Sub1 -> dec rax
+    --Add1 -> inc rax
+    --Sub1 -> dec rax
 
 compileDatum :: Expr -> Code
 compileDatum expr = mdo
@@ -122,3 +122,35 @@ compileDatum expr = mdo
     Char val -> mov rax $ ImmOp $ Immediate $ valueToBits $ Char val
     Str str -> compileStr str
     Eof -> mov rax $ ImmOp $ Immediate $ valueToBits Eof
+
+-- compileOp0 :: Expr -> Code
+-- compileOp0 = undefined
+
+-- compileOp1 :: Op1 -> Expr -> Code
+--compileOp1 op expr = mdo
+--   compileExpr expr
+--   case op of
+--     Add1 -> add rax $ ImmOp $ Immediate $ fromIntegral $ valueToBits $ Int 1
+--     _ -> error "todo"
+-- compileOp1 Add1 val = undefined
+-- compileOp1 Sub1 val = undefined
+-- compileOp1 ZeroHuh val = undefined
+-- compileOp1 CharHuh val = undefined
+-- compileOp1 IntegerToChar val = undefined
+-- compileOp1 CharToInteger val = undefined
+-- compileOp1 WriteByte val = undefined
+-- compileOp1 EofObjectHuh val = undefined
+-- compileOp1 Box val = undefined
+-- compileOp1 Car val = undefined
+-- compileOp1 Cdr val = undefined
+-- compileOp1 Unbox val = undefined
+-- compileOp1 EmptyHuh val = undefined
+-- compileOp1 ConsHuh val = undefined
+-- compileOp1 BoxHuh val = undefined
+-- compileOp1 VectorHuh val = undefined
+-- compileOp1 VectorLength val = undefined
+-- compileOp1 StringHuh val = undefined
+-- compileOp1 StringLength val = undefined
+
+compileOp2 :: Expr -> Code
+compileOp2 = undefined
