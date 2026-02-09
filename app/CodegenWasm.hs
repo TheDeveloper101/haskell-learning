@@ -11,7 +11,7 @@ import AST
 import Language.Wasm.Structure (ValueType(..), Module)
 import Language.Wasm.Builder
 import Data.Proxy
-import TypesWasm(valueToBits, bitsToValue)
+import TypesWasm(valueToBits, bitsToValue, immMask, typeChar, maskChar)
 import Language.Wasm (validate)
 import Data.Either (fromRight)
 import qualified Data.Map as Map
@@ -22,10 +22,10 @@ extractResult :: Value -> Expr
 extractResult (VI64 v) = bitsToValue (unsafeCoerce v)
 
 runWasm :: Expr -> IO (Maybe [Expr])
-runWasm = (fmap . fmap . fmap) extractResult . runWasmInt . createModule . compileWasm 
+runWasm = (fmap . fmap . fmap) extractResult . runWasmInt . createModule . compileWasm
 
 runWasmInt' :: Expr -> IO (Maybe [Value])
-runWasmInt' = runWasmInt . createModule . compileWasm 
+runWasmInt' = runWasmInt . createModule . compileWasm
 
 runWasmInt :: Module -> IO (Maybe [Value])
 runWasmInt mod =
@@ -42,7 +42,7 @@ compileWasm e = case e of
     Int i -> i64c (valueToBits (Int i))
     Bool b -> i64c (valueToBits (Bool b))
     Char c -> i64c (valueToBits (Char c))
-    Prim1 op1 e -> compileOp1Wasm op1 (compileWasm e) 
+    Prim1 op1 e -> compileOp1Wasm op1 (compileWasm e)
     Prim2 op2 e1 e2 -> compileOp2Wasm op2 (compileWasm e1) (compileWasm e2)
     _ -> trap Proxy
 
@@ -50,7 +50,8 @@ compileOp1Wasm :: Op1 -> GenFun (Proxy I64) -> GenFun (Proxy I64)
 compileOp1Wasm op1 gf = case op1 of
     Add1 -> add (i64c (valueToBits (Int 1))) gf
     Sub1 -> sub gf (i64c (valueToBits (Int 1)))
-    ZeroHuh -> add (shl (extend_u (eqz gf)) (i64c 5)) (i64c 24) 
+    ZeroHuh -> add (shl (extend_u (eqz gf)) (i64c 5)) (i64c 24)
+    CharHuh -> add (shl (extend_u (eq (i64c typeChar) (Language.Wasm.Builder.and gf (i64c maskChar)))) (i64c 5)) (i64c 24)
     _ -> trap Proxy
 
 compileOp2Wasm :: Op2 -> GenFun (Proxy I64) -> GenFun (Proxy I64) -> GenFun (Proxy I64)
