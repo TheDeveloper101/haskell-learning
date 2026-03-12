@@ -82,7 +82,8 @@ executable haskell-learning
                       process,
                       cond,
                       wasm,
-                      text
+                      text,
+		      HUnit
 
     -- Directories containing source files.
     hs-source-dirs:   app

@@ -5,6 +5,7 @@ import Data.Void (Void)
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
+import Test.HUnit 
 
 import AST
 
@@ -168,3 +169,13 @@ parseExpr input =
   case parse (skipSpace *> parseRecursive <* eof) "" input of
     Left err -> Left $ errorBundlePretty err
     Right out -> Right out
+
+-- TODO: support parsing for a full racket program
+
+-- TODO: writing more tests; maybe move to test file
+test_define :: Test
+test_define = "Testing define keyword" ~: parse parseDefn "" "(define abc (+ 4 3))" ~?=
+  Right (DefnVar "abc" (Prim2 Plus (Int 4) (Int 3)))
+
+runTests :: IO Counts
+runTests = runTestTT $ TestList [test_define]
