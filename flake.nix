@@ -13,13 +13,14 @@
     {
       devShells."x86_64-linux".default = pkgs.mkShell {
         packages = with pkgs; [
-          haskell-ci
+          haskell.compiler.ghc96
+          haskellPackages.cabal-install
+          
           hlint
           haskellPackages.hoogle
-          haskellPackages.cabal-install
+          
           gcc
           gmp
-          haskell.compiler.ghc96
         ];
       };
     };
