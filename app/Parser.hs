@@ -49,7 +49,7 @@ parseInt = Int . read <$> (parseBare <|> parsePos <|> parseNeg)
     parseNeg = (:) <$> char '-' <*> some numberChar
 
 parseEmpty :: Parser Expr
-parseEmpty = Empty <$ (string "'(" >> space1 >> string ")")
+parseEmpty = Empty <$ (string "'(" >> optional space1 >> string ")")
 
 -- based off racket reference 1.3.14
 parseChar :: Parser Expr
@@ -135,7 +135,7 @@ parsePrimN = matchParens $ do
 
     _ -> fail "Invalid primN operation"
 
-
+-- TODO: parse multiple bindings?
 parseLet :: Parser Expr
 parseLet = matchParens $ do
   discard "let"
@@ -177,5 +177,16 @@ test_define :: Test
 test_define = "Testing define keyword" ~: parse parseDefn "" "(define abc (+ 4 3))" ~?=
   Right (DefnVar "abc" (Prim2 Plus (Int 4) (Int 3)))
 
+test_exprs :: Test
+test_exprs = "Testing expressions" ~: TestList [
+    "adding" ~: parseExpr "(add1 727)" ~?= Right (Prim1 Add1 (Int 727)),
+    "cons1" ~: parseExpr "(cons 57 '())" ~?= Right (Prim2 Cons (Int 57) Empty),
+    "cons2" ~: parseExpr "(cons '() '())" ~?= Right (Prim2 Cons Empty Empty),
+    "if" ~: parseExpr "(if (eq? (+ 17 38) (- 31 99)) #\\newline (cdr (cons \"butterfly\" (cons \"aurora\" '()))))" ~?= Right (If (Prim2 EqHuh (Prim2 Plus (Int 17) (Int 38)) (Prim2 Minus (Int 31) (Int 99))) (Char '\n') (Prim1 Cdr (Prim2 Cons (Str "butterfly") (Prim2 Cons (Str "aurora") (Empty))))),
+    "let1" ~: parseExpr "(let ((x 5)) x)" ~?= Right (Let "x" (Int 5) (Var "x"))
+-- Note: eventually switch Let bindings from Let Id Expr Expr to Let [(Id, Expr)] Expr?
+--  "let2" ~: parseExpr "(let ((x 5)) (let ((x 2) (y x)) (cons y (cons x '()))))" ~?= Right (Let [("x", (Int 5))] (Let [("x", (Int 2)), ("y", (Var x))] (Prim2 Cons (Var y) (Prim2 Cons (Var x) Empty))))
+  ]
+
 runTests :: IO Counts
-runTests = runTestTT $ TestList [test_define]
+runTests = runTestTT $ TestList [test_exprs, test_define]
