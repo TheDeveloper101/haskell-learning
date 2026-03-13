@@ -171,9 +171,14 @@ parseExpr input =
     Left err -> Left $ errorBundlePretty err
     Right out -> Right out
 
--- TODO: support parsing for a full racket program
--- 1. magic string
--- 2. 
+parseModl :: Parser Modl
+parseModl = Mdl <$> (discard "#lang" *> (some $ noneOf "()[]{}\",'`;#|\\ ") <* skipSpace)
+
+parseProg :: String -> Either String Prog
+parseProg input =
+  case parse (skipSpace *> (Program <$> parseModl <*> many parseRecursive) <* eof) "" input of
+    Left err -> Left $ errorBundlePretty err
+    Right out -> Right out
 
 -- TODO: writing more tests; maybe move to test file
 -- test_define :: Test

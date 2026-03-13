@@ -1,4 +1,7 @@
-module AST ( Defn (..), Expr (..), Id, Op0 (..), Op1 (..), Op2 (..), Op3 (..) ) where
+module AST ( Prog (..), Defn (..), Expr (..), Id, Op0 (..), Op1 (..), Op2 (..), Op3 (..), Modl (..), Library ) where
+
+data Prog = Program Modl [Expr]
+          deriving (Eq, Show)
 
 data Expr = Eof
           | Empty
@@ -37,4 +40,6 @@ data Op3  = VectorSetBang
 data Defn = DefnVar Id Expr
           | DefnFn Id [Id] [Expr]
           deriving (Eq, Show)
-
+data Modl = Mdl String
+          deriving (Eq, Show)
+type Library = String
