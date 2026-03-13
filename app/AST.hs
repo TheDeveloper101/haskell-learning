@@ -1,8 +1,5 @@
 module AST ( Defn (..), Expr (..), Id, Op0 (..), Op1 (..), Op2 (..), Op3 (..) ) where
 
-data Defn = DefnVar Id Expr
-          | DefnFn Id [Id] [Expr]
-          deriving (Eq, Show)
 data Expr = Eof
           | Empty
           | Int Int
@@ -17,6 +14,7 @@ data Expr = Eof
           | Begin Expr Expr
           | Let Id Expr Expr
           | Var Id
+          | Definition Defn
           deriving (Eq, Show)
 type Id   = String 
 data Op0  = ReadByte | PeekByte | Void
@@ -34,4 +32,9 @@ data Op2  = Plus | Minus | LessThan | Equals
           | MakeVector | VectorRef
           | MakeString | StringRef
           deriving (Eq, Show)
-data Op3  = VectorSetBang deriving (Eq, Show)
+data Op3  = VectorSetBang
+          deriving (Eq, Show)
+data Defn = DefnVar Id Expr
+          | DefnFn Id [Id] [Expr]
+          deriving (Eq, Show)
+
