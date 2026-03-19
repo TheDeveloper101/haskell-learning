@@ -58,4 +58,6 @@ compileOp2Wasm :: Op2 -> GenFun (Proxy I64) -> GenFun (Proxy I64) -> GenFun (Pro
 compileOp2Wasm op2 gf1 gf2 = case op2 of
     Plus -> add gf1 gf2
     Minus -> sub gf1 gf2
+    Equals -> add (shl (extend_u (eq gf1 gf2)) (i64c 5)) (i64c 24)
+    LessThan -> add (shl (extend_u (lt_u gf1 gf2)) (i64c 5)) (i64c 24)
     _ -> trap Proxy
